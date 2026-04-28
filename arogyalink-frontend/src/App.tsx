@@ -7,6 +7,7 @@ import RegisterFamilyPage from './pages/RegisterFamilyPage'
 import FamilyDetailPage from './pages/FamilyDetailPage'
 import CasesPage from './pages/CasesPage'
 import CaseDetailPage from './pages/CaseDetailPage'
+import AshaPage from './pages/AshaPage'
 
 function AdminApp() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/admin/*" element={<AdminApp />} />
+      <Route path="/asha" element={<AshaPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
