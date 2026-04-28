@@ -26,7 +26,7 @@
 
 ## What It Does
 
-A villager dials one number. An AI agent answers in their language — Hindi, Kannada, Telugu, or English — asks the right questions to understand the emergency, and simultaneously dispatches the nearest ASHA worker, ambulance, and PHC doctor. No app. No internet. No literacy required.
+A villager dials one number. An AI agent answers in their language — Hindi, Telugu, or English — asks the right questions to understand the emergency, and simultaneously dispatches the nearest ASHA worker, ambulance, and PHC doctor. No app. No internet. No literacy required.
 
 ```
 Caller dials → AI triages in local language → Dispatches help → Coordinator monitors live
@@ -40,10 +40,14 @@ Caller dials → AI triages in local language → Dispatches help → Coordinato
 
 | Web Dashboard | Mobile App |
 |:---:|:---:|
-| ![Dashboard](https://solution-challenge-cb95c.web.app) | Flutter app with emergency button |
+| [Live Dashboard](https://solution-challenge-cb95c.web.app/admin) | [Mobile App](https://solution-challenge-cb95c.web.app/mobile/) |
 | Live call monitoring, family registry, case history | One-tap emergency call, register family, call history |
 
-**Live:** https://solution-challenge-cb95c.web.app
+**Live Dashboard:** https://solution-challenge-cb95c.web.app/admin
+
+**Mobile App:** https://solution-challenge-cb95c.web.app/mobile/
+
+**Backend API Docs:** https://arogyalink-backend-852047333356.asia-south1.run.app/docs
 
 ---
 
@@ -293,12 +297,16 @@ VITE_FIREBASE_APP_ID=
 
 ## Deployment
 
+**Live Backend:** https://arogyalink-backend-852047333356.asia-south1.run.app
+
+**Live Frontend:** https://solution-challenge-cb95c.web.app
+
 ### Backend → Google Cloud Run
 ```bash
 cd arogyalink-backend
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/arogyalink-backend
+gcloud builds submit --tag gcr.io/solution-challenge-cb95c/arogyalink-backend
 gcloud run deploy arogyalink-backend \
-  --image gcr.io/YOUR_PROJECT_ID/arogyalink-backend \
+  --image gcr.io/solution-challenge-cb95c/arogyalink-backend \
   --region asia-south1 \
   --allow-unauthenticated
 ```
