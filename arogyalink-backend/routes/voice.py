@@ -80,7 +80,7 @@ _REGISTRATION_OFFER = {
     "te-IN": "To get faster help next time, press 1 to register your family now, or hang up.",
 }
 
-MAX_EMPTY_RETRIES = 2
+MAX_EMPTY_RETRIES = 1
 
 
 # ── Step 1: Incoming call ──────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ async def handle_language_selection(
     CallSid: str = Form(...),
 ):
     phone = to_e164(From)
-    lang_info = LANG_CONFIG.get(Digits, LANG_CONFIG["4"])
+    lang_info = LANG_CONFIG.get(Digits, LANG_CONFIG["2"])
     lang_code = lang_info["code"]
 
     # Look up registered family
@@ -166,7 +166,7 @@ async def handle_conversation(
 
     # ── Empty / unclear speech ─────────────────────────────────────────────────
     speech_missing = not SpeechResult or empty == "true"
-    speech_unclear = bool(SpeechResult) and confidence < 0.35
+    speech_unclear = bool(SpeechResult) and confidence < 0.20
 
     if speech_missing or speech_unclear:
         if retries >= MAX_EMPTY_RETRIES:
@@ -230,7 +230,7 @@ async def handle_conversation(
             )
 
         return Response(
-            content=build_farewell_twiml(lang),
+            content=build_farewell_twiml(lang, family=family),
             media_type="application/xml",
         )
 

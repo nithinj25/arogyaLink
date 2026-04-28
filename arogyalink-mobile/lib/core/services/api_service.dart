@@ -9,7 +9,7 @@ class ApiService {
       : _dio = Dio(BaseOptions(
           baseUrl: baseUrl ?? const String.fromEnvironment(
             'API_URL',
-            defaultValue: 'http://localhost:8082',
+            defaultValue: 'https://arogyalink-backend-852047333356.asia-south1.run.app',
           ),
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 15),

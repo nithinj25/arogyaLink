@@ -4,14 +4,12 @@ from config.settings import get_settings
 settings = get_settings()
 
 LANG_CONFIG = {
-    "1": {"code": "kn-IN", "name": "Kannada",
-          "greeting": "ನಮಸ್ಕಾರ, ನಿಮ್ಮ ಆರೋಗ್ಯ ತುರ್ತುಸ್ಥಿತಿ ವಿವರಿಸಿ"},
-    "2": {"code": "hi-IN", "name": "Hindi",
+    "1": {"code": "hi-IN", "name": "Hindi",
           "greeting": "नमस्ते, कृपया अपनी स्वास्थ्य समस्या बताएं"},
+    "2": {"code": "en-IN", "name": "English",
+          "greeting": "Hello, please describe your health emergency"},
     "3": {"code": "te-IN", "name": "Telugu",
           "greeting": "నమస్కారం, మీ ఆరోగ్య సమస్య చెప్పండి"},
-    "4": {"code": "en-IN", "name": "English",
-          "greeting": "Hello, please describe your health emergency"},
 }
 
 # Polly.Aditi only supports en-IN and hi-IN for TTS.
@@ -26,8 +24,22 @@ TTS_LANG = {
 _FAREWELL_MESSAGES = {
     "en-IN": "Emergency registered. Help is on the way. You will receive an SMS shortly. Please stay calm.",
     "hi-IN": "आपातकाल दर्ज हो गया। मदद भेजी जा रही है। आपको SMS मिलेगा। शांत रहें।",
-    "kn-IN": "Emergency registered. Help is on the way. You will receive an SMS. Please stay calm.",
     "te-IN": "Emergency registered. Help is on the way. You will receive an SMS. Please stay calm.",
+}
+
+_FAREWELL_REGISTERED = {
+    "en-IN": (
+        "Emergency registered. The nearest ASHA worker is being dispatched to {address}. "
+        "Help is on the way. Please stay calm and keep your phone on."
+    ),
+    "hi-IN": (
+        "आपातकाल दर्ज हो गया। नज़दीकी आशा कार्यकर्ता {address} पर भेजी जा रही हैं। "
+        "मदद आ रही है। शांत रहें और फ़ोन खुला रखें।"
+    ),
+    "te-IN": (
+        "Emergency registered. The nearest ASHA worker is being dispatched to {address}. "
+        "Help is on the way. Please stay calm and keep your phone on."
+    ),
 }
 
 
@@ -40,11 +52,10 @@ def build_welcome_twiml(base_url: str) -> str:
         method="POST",
     )
     gather.say(
-        "Welcome to ArogyaLink. "
-        "For Kannada, press 1. "
-        "Hindi ke liye, 2 dabaiye. "
-        "Telugu kosam, 3 napatandi. "
-        "For English, press 4.",
+        "Welcome to ArogyaLink emergency line. "
+        "Hindi ke liye, 1 dabaiye. "
+        "For English, press 2. "
+        "Telugu kosam, 3 napatandi.",
         voice="Polly.Aditi",
         language="en-IN",
     )
@@ -62,7 +73,7 @@ def build_conversation_twiml(question: str, lang_code: str, action_url: str) -> 
         action=action_url,
         method="POST",
         speech_timeout="auto",
-        timeout=8,                   # seconds of initial silence before timing out
+        timeout=12,                  # seconds of initial silence before timing out
         language=lang_code,          # STT in the patient's language
         action_on_empty_result=True,
     )
@@ -73,10 +84,21 @@ def build_conversation_twiml(question: str, lang_code: str, action_url: str) -> 
     return str(response)
 
 
-def build_farewell_twiml(lang_code: str) -> str:
+def build_farewell_twiml(lang_code: str, family: dict | None = None) -> str:
     """Final message after triage is triggered — spoken before hanging up."""
     tts_lang = TTS_LANG.get(lang_code, "en-IN")
-    message = _FAREWELL_MESSAGES.get(lang_code, _FAREWELL_MESSAGES["en-IN"])
+
+    if family:
+        addr_parts = [
+            family.get("address"), family.get("village"),
+            family.get("district"), family.get("state"),
+        ]
+        address = ", ".join(p for p in addr_parts if p) or "your registered address"
+        template = _FAREWELL_REGISTERED.get(lang_code, _FAREWELL_REGISTERED["en-IN"])
+        message = template.format(address=address)
+    else:
+        message = _FAREWELL_MESSAGES.get(lang_code, _FAREWELL_MESSAGES["en-IN"])
+
     response = VoiceResponse()
     response.say(message, language=tts_lang, voice="Polly.Aditi")
     response.pause(length=1)

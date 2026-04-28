@@ -80,6 +80,7 @@ IDENTIFY (registered callers only):
 ASSESS:
   → ONE question per turn — most critical gap first
   → Symptom → Severity → (Location if unregistered) → done
+  → NEVER ask for age as a standalone question — capture it only if volunteered
   → For registered callers: reference known conditions where relevant
   → {location_rule}
 
@@ -285,10 +286,10 @@ _FALLBACKS = {
         "te-IN": "Is the patient conscious and breathing normally?",
     },
     2: {
-        "en-IN": "Can you tell me the patient's age and who they are to you?",
-        "hi-IN": "मरीज़ की उम्र क्या है और वो आपके कौन हैं?",
-        "kn-IN": "Can you tell me the patient's age?",
-        "te-IN": "Can you tell me the patient's age?",
+        "en-IN": "What is your village or nearest town so we can send help?",
+        "hi-IN": "आपका गाँव या नज़दीकी शहर कौनसा है ताकि हम मदद भेज सकें?",
+        "kn-IN": "What is your village or nearest town so we can send help?",
+        "te-IN": "What is your village or nearest town so we can send help?",
     },
 }
 
@@ -328,6 +329,58 @@ def _is_life_threatening(text: str) -> bool:
     return any(kw in lower for kw in _LIFE_THREATENING)
 
 
+_SYMPTOM_KW = [
+    "pain", "chest", "heart", "breath", "breathing", "fever", "accident",
+    "fall", "fell", "vomit", "headache", "seizure", "faint", "unconscious",
+    "bleed", "burn", "injury", "hurt", "dard", "bukhaar", "chot", "dil",
+    "dard", "takleef", "bimaar", "emergency", "help", "problem",
+]
+_SEVERITY_KW = [
+    "yes", "no", "conscious", "breathing", "severe", "critical", "mild",
+    "okay", "fine", "bad", "worse", "awake", "haan", "nahi", "theek",
+    "nahi", "ho", "hai",
+]
+
+
+def _rule_extract(user_input: str, extracted: dict, turn: int) -> dict:
+    """Keyword-based extraction used as fallback when Gemini is unavailable."""
+    text = user_input.lower().strip()
+    if not text:
+        return extracted
+
+    # Turn 1: anything said is the symptom description
+    if turn == 0 and not extracted.get("symptom"):
+        extracted["symptom"] = user_input
+        return extracted
+
+    # If symptom set but no severity — treat this turn as severity answer
+    if extracted.get("symptom") and not extracted.get("severity"):
+        extracted["severity"] = user_input
+        return extracted
+
+    # If symptom + severity set but no location — treat this turn as location
+    if extracted.get("symptom") and extracted.get("severity") and not extracted.get("location"):
+        if len(text) > 1:
+            extracted["location"] = user_input
+        return extracted
+
+    # First turn with symptom keywords
+    if not extracted.get("symptom"):
+        for kw in _SYMPTOM_KW:
+            if kw in text:
+                extracted["symptom"] = user_input
+                break
+
+    return extracted
+
+
+_ALL_COLLECTED = {
+    "en-IN": "Thank you. Help is being arranged for you right now. Please stay calm.",
+    "hi-IN": "धन्यवाद। आपके लिए अभी मदद भेजी जा रही है। शांत रहें।",
+    "te-IN": "Thank you. Help is being arranged for you right now. Please stay calm.",
+}
+
+
 def _next_question(extracted: dict, lang_code: str, family: dict | None, turn: int) -> str:
     if not extracted.get("symptom"):
         return _NEXT_Q["symptom"].get(lang_code, _NEXT_Q["symptom"]["en-IN"])
@@ -335,8 +388,8 @@ def _next_question(extracted: dict, lang_code: str, family: dict | None, turn: i
         return _NEXT_Q["severity"].get(lang_code, _NEXT_Q["severity"]["en-IN"])
     if not extracted.get("location") and not family:
         return _NEXT_Q["location"].get(lang_code, _NEXT_Q["location"]["en-IN"])
-    fb = _FALLBACKS.get(min(turn, 2), _FALLBACKS[2])
-    return fb.get(lang_code, fb["en-IN"])
+    # All fields collected — should not normally reach here due to force_done
+    return _ALL_COLLECTED.get(lang_code, _ALL_COLLECTED["en-IN"])
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -431,9 +484,10 @@ async def run_conversation_turn(
 
         can_finish = has_symptom_severity and location_ok and (turns_done or fast_track)
 
-        if gemini_done and can_finish:
+        # Force done if all required fields collected — don't wait on Gemini
+        if can_finish:
             summary = build_summary(history, extracted)
-            logger.info(f"[{case_id}] Conversation complete")
+            logger.info(f"[{case_id}] Conversation complete (force={not gemini_done})")
             return {"done": True, "summary": summary}
 
         # Gemini tried to finish too early — inject the right follow-up
@@ -448,8 +502,20 @@ async def run_conversation_turn(
 
     except Exception as e:
         logger.error(f"[{case_id}] Gemini error: {e}", exc_info=True)
-        fb = _FALLBACKS.get(min(turn_count, 2), _FALLBACKS[2])
-        fallback = fb.get(lang_code, fb["en-IN"])
+        # Use rule-based extraction so conversation still progresses
+        extracted = _rule_extract(user_input, extracted, turn_count)
+        update_call_field(case_id, "extracted_info", extracted)
+
+        has_symptom_severity = extracted.get("symptom") and extracted.get("severity")
+        location_ok = family is not None or bool(extracted.get("location"))
+
+        if has_symptom_severity and location_ok:
+            summary = build_summary(history, extracted)
+            logger.info(f"[{case_id}] Force-done via rule-extract after Gemini error")
+            return {"done": True, "summary": summary}
+
+        # Ask the next missing field
+        fallback = _next_question(extracted, lang_code, family, turn_count)
         history.append({"role": "assistant", "content": fallback})
         update_call_field(case_id, "conversation_history", history)
         return {"done": False, "response": fallback}
