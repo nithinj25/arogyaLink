@@ -1,0 +1,51 @@
+name: arogyalink_mobile
+description: ArogyaLink — Emergency Healthcare for Rural India
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Networking
+  dio: ^5.4.0
+  retrofit: ^4.1.0
+
+  # Firebase
+  firebase_core: ^2.27.0
+  firebase_database: ^10.4.9
+  firebase_auth: ^4.18.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^13.2.0
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.0
+  cached_network_image: ^3.3.1
+
+  # Utils
+  url_launcher: ^6.2.6
+  intl: ^0.19.0
+  shared_preferences: ^2.2.3
+  permission_handler: ^11.3.1
+  phone_form_field: ^9.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  retrofit_generator: ^8.1.0
+  build_runner: ^2.4.8
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
+  # Fonts are loaded via google_fonts package — no local assets needed

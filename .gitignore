@@ -1,0 +1,39 @@
+# Secrets — never commit these
+arogyalink-backend/.env
+arogyalink-backend/firebase-service-account.json
+arogyalink-frontend/.env
+arogyalink-frontend/.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+arogyalink-frontend/dist/
+
+# Flutter
+arogyalink-mobile/.dart_tool/
+arogyalink-mobile/build/
+arogyalink-mobile/.flutter-plugins
+arogyalink-mobile/.flutter-plugins-dependencies
+arogyalink-mobile/pubspec.lock
+
+# Logs
+*.log
+server.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Claude Code
+.claude/
